@@ -1,21 +1,8 @@
 import json
 import urllib.parse
-import urllib.error
 import urllib.request
 from flask import Flask, jsonify, render_template_string, request
 
-
-from flask import Flask, jsonify
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "<h1>Steam Clone Serverless App Running!</h1>"
-
-@app.route('/api/search')
-def search():
-    return jsonify([{"id": "105600", "title": "Terraria", "price": "$9.99", "discount": "0%", "rating": "97%"}])
 app = Flask(__name__)
 
 HTML_TEMPLATE = """
@@ -95,7 +82,7 @@ HTML_TEMPLATE = """
                 loading.style.display = 'none';
 
                 if (!games || !games.length) {
-                    grid.innerHTML = '<p>No games found or Steam rate limit reached. Try searching another term.</p>';
+                    grid.innerHTML = '<p>No games found.</p>';
                     return;
                 }
 
@@ -106,7 +93,7 @@ HTML_TEMPLATE = """
                         <img src="https://cdn.akamai.steamstatic.com/steam/apps/${g.id}/header.jpg" onerror="this.src='https://via.placeholder.com/280x130?text=Steam+Game'">
                         <div class="game-details">
                             <a href="https://store.steampowered.com/app/${g.id}" target="_blank" class="game-title">${g.title}</a>
-                            <div class="metrics">Rating: <strong style="color: var(--accent-blue);">${g.rating}</strong></div>
+                            <div class="metrics">Status: <strong style="color: var(--accent-blue);">${g.rating}</strong></div>
                             <div class="price-bar">
                                 <span class="discount-tag">${g.discount}</span>
                                 <span class="price">${g.price}</span>
@@ -118,7 +105,7 @@ HTML_TEMPLATE = """
                 });
             } catch (err) {
                 loading.style.display = 'none';
-                grid.innerHTML = '<p>Error fetching search results. Please try again.</p>';
+                grid.innerHTML = '<p>Error fetching results.</p>';
             }
         }
 
@@ -157,10 +144,10 @@ HTML_TEMPLATE = """
         function exportCSV() {
             const keys = Object.keys(shortlist);
             if (!keys.length) return alert("Add games first!");
-            let csv = "data:text/csv;charset=utf-8,Title,Price,Discount,Rating,AppID,URL\\n";
+            let csv = "data:text/csv;charset=utf-8,Title,Price,Discount,AppID,URL\\n";
             keys.forEach(id => {
                 const g = shortlist[id];
-                csv += `"${g.title}","${g.price}","${g.discount}","${g.rating}","${id}","https://store.steampowered.com/app/${id}"\\n`;
+                csv += `"${g.title}","${g.price}","${g.discount}","${id}","https://store.steampowered.com/app/${id}"\\n`;
             });
             const link = document.createElement("a");
             link.setAttribute("href", encodeURI(csv));
@@ -191,48 +178,28 @@ def api_search():
         
         req = urllib.request.Request(
             search_url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'}
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         )
         
         with urllib.request.urlopen(req, timeout=4) as response:
             search_data = json.loads(response.read().decode('utf-8'))
-            items = search_data.get('items', [])[:8]
+            items = search_data.get('items', [])[:10]
 
             for item in items:
-                app_id = str(item.get('id', ''))
-                if not app_id:
-                    continue
-
-                rating_score = "N/A"
-                try:
-                    rev_url = f"https://store.steampowered.com/appreviews/{app_id}?json=1"
-                    req_rev = urllib.request.Request(
-                        rev_url, 
-                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-                    )
-                    with urllib.request.urlopen(req_rev, timeout=2) as rev_res:
-                        rev_data = json.loads(rev_res.read().decode('utf-8')).get('query_summary', {})
-                        total = rev_data.get('total_reviews', 0)
-                        pos = rev_data.get('total_positive', 0)
-                        if total > 0:
-                            rating_score = f"{round((pos / total) * 100)}%"
-                except Exception:
-                    pass
-
                 price_data = item.get('price', {})
                 numeric_price = (price_data.get('final', 0) / 100.0) if price_data else 0.0
                 price_str = f"${numeric_price:.2f}" if numeric_price > 0 else ("Free" if item.get('is_free') else "N/A")
                 discount = f"{price_data.get('discount_percent', 0)}%" if price_data else "0%"
 
                 games.append({
-                    "id": app_id,
+                    "id": str(item.get('id', '')),
                     "title": item.get('name', 'Unknown Game'),
                     "price": price_str,
                     "numericPrice": numeric_price,
                     "discount": discount,
-                    "rating": rating_score
+                    "rating": "Available"
                 })
     except Exception as e:
-        print(f"Handled API exception safely: {e}")
+        print(f"Fetch error: {e}")
 
     return jsonify(games)
