@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Game Evaluator & Shortlist Tool</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #171a21; color: #c7d5e0; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #1b2838; padding: 20px; border-radius: 8px; border-bottom: 2px solid #66c0f4; }
+        h1 { margin: 0; color: #66c0f4; font-size: 1.8em; }
+        .stats-bar { display: flex; gap: 20px; font-size: 1.1em; background: #2a475e; padding: 10px 20px; border-radius: 6px; }
+        .stats-bar span { font-weight: bold; color: #fff; }
+        
+        /* Filter Controls Styling */
+        .filter-panel { display: flex; gap: 15px; margin-top: 20px; background: #1b2838; padding: 15px; border-radius: 8px; flex-wrap: wrap; }
+        .filter-panel input, .filter-panel select { background: #2a475e; color: #fff; border: 1px solid #66c0f4; padding: 8px 12px; border-radius: 4px; font-size: 0.95em; outline: none; }
+        .filter-panel input { flex-grow: 1; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1b2838; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #2a475e; }
+        th { background: #0e141d; color: #66c0f4; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        tr:hover { background: #223041; }
+        
+        .discount { color: #a4d007; font-weight: bold; background: #4c6b22; padding: 3px 6px; border-radius: 3px; font-size: 0.9em; }
+        .rating { color: #66c0f4; font-weight: bold; }
+        
+        .action-btn { padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 5px; transition: 0.2s; }
+        .btn-keep { background: #5c7e10; color: white; }
+        .btn-keep.active { background: #8bc53f; color: black; box-shadow: 0 0 8px #8bc53f; }
+        .btn-drop { background: #a62a2a; color: white; }
+        .btn-drop.active { background: #e64a4a; opacity: 0.6; }
+        
+        tr.dropped { opacity: 0.35; filter: grayscale(80%); }
+        
+        .controls { margin-top: 20px; display: flex; justify-content: flex-end; }
+        .export-btn { background: #66c0f4; color: #171a21; font-size: 1.1em; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .export-btn:hover { background: #a4d007; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Steam Game Evaluator</h1>
+            <div class="stats-bar">
+                <div>Kept Games: <span id="kept-count">0</span></div>
+                <div>Estimated Total: <span id="total-cost">$0.00</span></div>
+            </div>
+        </header>
+
+        <!-- Interactive Search & Filter Controls -->
+        <div class="filter-panel">
+            <input type="text" id="search-input" onkeyup="applyFilters()" placeholder="🔍 Live search game titles...">
+            
+            <select id="price-filter" onchange="applyFilters()">
+                <option value="all">All Prices</option>
+                <option value="free">Free Games Only</option>
+                <option value="10">Under $10.00</option>
+                <option value="20">Under $20.00</option>
+            </select>
+
+            <select id="rating-filter" onchange="applyFilters()">
+                <option value="all">All Ratings</option>
+                <option value="80">80%+ Positive</option>
+                <option value="90">90%+ Overwhelmingly Positive</option>
+            </select>
+
+            <select id="discount-filter" onchange="applyFilters()">
+                <option value="all">All Items</option>
+                <option value="sale">On Sale Only</option>
+            </select>
+        </div>
+
+        <table id="games-table">
+            <thead>
+                <tr>
+                    <th>Game Title</th>
+                    <th>Price</th>
+                    <th>Discount</th>
+                    <th>User Rating</th>
+                    <th>Total Reviews</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr id="row-2501430">
+                <td style="font-weight: bold; color: #fff;">
+                    <a href="https://store.steampowered.com/app/2501430" target="_blank" style="color: #fff; text-decoration: none;">
+                        World War 2: WW2 Strategy Games ↗
+                    </a>
+                </td>
+                <td>Free</td>
+                <td><span class="discount">0%</span></td>
+                <td class="rating">N/A</td>
+                <td>0</td>
+                <td>
+                    <button class="action-btn btn-keep" onclick="updateDecision('2501430', 'keep')">Keep</button>
+                    <button class="action-btn btn-drop" onclick="updateDecision('2501430', 'drop')">Drop</button>
+                </td>
+            </tr>
+            
+            <tr id="row-3148210">
+                <td style="font-weight: bold; color: #fff;">
+                    <a href="https://store.steampowered.com/app/3148210" target="_blank" style="color: #fff; text-decoration: none;">
+                        99 Games: Puzzle, Action, Strategy, Simulation, Casual, Roguelike, Shooter, RPG & More ↗
+                    </a>
+                </td>
+                <td>$9.99</td>
+                <td><span class="discount">0%</span></td>
+                <td class="rating">0% Positive</td>
+                <td>1</td>
+                <td>
+                    <button class="action-btn btn-keep" onclick="updateDecision('3148210', 'keep')">Keep</button>
+                    <button class="action-btn btn-drop" onclick="updateDecision('3148210', 'drop')">Drop</button>
+                </td>
+            </tr>
+            
+            <tr id="row-1091500">
+                <td style="font-weight: bold; color: #fff;">
+                    <a href="https://store.steampowered.com/app/1091500" target="_blank" style="color: #fff; text-decoration: none;">
+                        Cyberpunk 2077 ↗
+                    </a>
+                </td>
+                <td>$59.99</td>
+                <td><span class="discount">0%</span></td>
+                <td class="rating">89% Positive</td>
+                <td>387,709</td>
+                <td>
+                    <button class="action-btn btn-keep" onclick="updateDecision('1091500', 'keep')">Keep</button>
+                    <button class="action-btn btn-drop" onclick="updateDecision('1091500', 'drop')">Drop</button>
+                </td>
+            </tr>
+            
+            </tbody>
+        </table>
+
+        <div class="controls">
+            <button class="export-btn" onclick="exportCSV()">📥 Export Shortlist (CSV)</button>
+        </div>
+    </div>
+
+    <script>
+        let gamesData = {"2501430": {"title": "World War 2: WW2 Strategy Games", "price": "Free", "numericPrice": 0.0, "discount": "0%", "rating": "N/A", "numericRating": 0, "status": "none"}, "3148210": {"title": "99 Games: Puzzle, Action, Strategy, Simulation, Casual, Roguelike, Shooter, RPG & More", "price": "$9.99", "numericPrice": 9.99, "discount": "0%", "rating": "0% Positive", "numericRating": 0, "status": "none"}, "1091500": {"title": "Cyberpunk 2077", "price": "$59.99", "numericPrice": 59.99, "discount": "0%", "rating": "89% Positive", "numericRating": 89, "status": "none"}};
+
+        function applyFilters() {
+            let searchVal = document.getElementById('search-input').value.toLowerCase();
+            let priceVal = document.getElementById('price-filter').value;
+            let ratingVal = document.getElementById('rating-filter').value;
+            let discountVal = document.getElementById('discount-filter').value;
+
+            for (let id in gamesData) {
+                let g = gamesData[id];
+                let row = document.getElementById('row-' + id);
+                let show = true;
+
+                // Title Search
+                if (searchVal && !g.title.toLowerCase().includes(searchVal)) show = false;
+
+                // Price Filter
+                if (priceVal === 'free' && g.numericPrice !== 0) show = false;
+                if (priceVal === '10' && g.numericPrice > 10.0) show = false;
+                if (priceVal === '20' && g.numericPrice > 20.0) show = false;
+
+                // Rating Filter
+                if (ratingVal !== 'all' && g.numericRating < parseInt(ratingVal)) show = false;
+
+                // Discount Filter
+                if (discountVal === 'sale' && (g.discount === '0%' || g.discount === 'N/A')) show = false;
+
+                row.style.display = show ? '' : 'none';
+            }
+        }
+
+        function updateDecision(appId, decision) {
+            gamesData[appId].status = decision;
+            let row = document.getElementById('row-' + appId);
+            let keepBtn = row.querySelector('.btn-keep');
+            let dropBtn = row.querySelector('.btn-drop');
+
+            if (decision === 'keep') {
+                row.classList.remove('dropped');
+                keepBtn.classList.add('active');
+                dropBtn.classList.remove('active');
+            } else {
+                row.classList.add('dropped');
+                dropBtn.classList.add('active');
+                keepBtn.classList.remove('active');
+            }
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let count = 0;
+            let cost = 0.0;
+            for (let id in gamesData) {
+                if (gamesData[id].status === 'keep') {
+                    count++;
+                    cost += gamesData[id].numericPrice;
+                }
+            }
+            document.getElementById('kept-count').innerText = count;
+            document.getElementById('total-cost').innerText = '$' + cost.toFixed(2);
+        }
+
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Game Title,Price,Discount,Rating,App ID,URL\n";
+            let hasKept = false;
+            
+            for (let id in gamesData) {
+                let g = gamesData[id];
+                if (g.status === 'keep') {
+                    hasKept = true;
+                    csvContent += `"${g.title}","${g.price}","${g.discount}","${g.rating}","${id}","https://store.steampowered.com/app/${id}"\n`;
+                }
+            }
+
+            if (!hasKept) {
+                alert("Please click 'Keep' on at least one game before exporting!");
+                return;
+            }
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Steam_Final_Shortlist.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
