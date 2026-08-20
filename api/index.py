@@ -4,6 +4,18 @@ import urllib.error
 import urllib.request
 from flask import Flask, jsonify, render_template_string, request
 
+
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "<h1>Steam Clone Serverless App Running!</h1>"
+
+@app.route('/api/search')
+def search():
+    return jsonify([{"id": "105600", "title": "Terraria", "price": "$9.99", "discount": "0%", "rating": "97%"}])
 app = Flask(__name__)
 
 HTML_TEMPLATE = """
