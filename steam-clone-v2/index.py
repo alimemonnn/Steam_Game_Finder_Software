@@ -1,5 +1,4 @@
 import json
-import re
 import urllib.parse
 import urllib.request
 from flask import Flask, jsonify, render_template_string, request
@@ -31,7 +30,6 @@ HTML_TEMPLATE = """
             padding: 0;
         }
 
-        /* Steam Navigation Bar Header */
         header {
             background: #171a21;
             border-bottom: 2px solid #000;
@@ -83,7 +81,6 @@ HTML_TEMPLATE = """
             border-radius: 3px;
         }
 
-        /* Layout Grid */
         .wrapper {
             display: grid;
             grid-template-columns: 1fr 340px;
@@ -93,7 +90,6 @@ HTML_TEMPLATE = """
             padding: 0 20px;
         }
 
-        /* Main Game Grid */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -178,7 +174,6 @@ HTML_TEMPLATE = """
 
         .btn-add:hover { background: #8bc53f; color: #000; }
 
-        /* Sidebar / Shortlist Panel */
         .sidebar {
             background: var(--bg-card);
             border-radius: 4px;
@@ -384,7 +379,6 @@ HTML_TEMPLATE = """
             document.body.removeChild(link);
         }
 
-        // Auto search on page load
         window.onload = () => {
             document.getElementById('query').value = 'Top Rated';
             performSearch();
@@ -402,28 +396,26 @@ def index():
 def api_search():
     query = request.args.get('q', 'action')
     encoded_query = urllib.parse.quote(query)
-    
-    # 1. Search Steam Store API
+
     search_url = f"https://store.steampowered.com/api/storesearch/?term={encoded_query}&l=english&cc=US"
     req = urllib.request.Request(search_url, headers={'User-Agent': 'Mozilla/5.0'})
-    
+
     games = []
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=8) as response:
             search_data = json.loads(response.read().decode())
-            items = search_data.get('items', [])[:12] # Top 12 results
+            items = search_data.get('items', [])[:12]
 
             for item in items:
                 app_id = str(item['id'])
-                
-                # Fetch review details for each app
+
                 rev_url = f"https://store.steampowered.com/appreviews/{app_id}?json=1"
                 req_rev = urllib.request.Request(rev_url, headers={'User-Agent': 'Mozilla/5.0'})
-                
+
                 rating_score = "N/A"
                 total_reviews = 0
                 try:
-                    with urllib.request.urlopen(req_rev) as rev_res:
+                    with urllib.request.urlopen(req_rev, timeout=5) as rev_res:
                         rev_data = json.loads(rev_res.read().decode())['query_summary']
                         total_reviews = rev_data.get('total_reviews', 0)
                         pos = rev_data.get('total_positive', 0)
@@ -432,7 +424,6 @@ def api_search():
                 except Exception:
                     pass
 
-                # Price parsing
                 price_data = item.get('price', {})
                 numeric_price = (price_data.get('final', 0) / 100.0) if price_data else 0.0
                 price_str = f"${numeric_price:.2f}" if numeric_price > 0 else ("Free" if item.get('is_free') else "N/A")
@@ -453,25 +444,7 @@ def api_search():
     return jsonify(games)
 
 if __name__ == '__main__':
-    print("🚀 Steam Storefront Clone running on http://127.0.0.1:5000")
+    # This only runs when you execute `python index.py` locally.
+    # Vercel imports this file as a module instead, so app.run() never
+    # fires in production — it just uses the `app` object directly.
     app.run(debug=True, port=5000)
-from flask import Flask, send_file
-from pathlib import Path
-
-app = Flask(__name__)
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-@app.route("/")
-def home():
-    return send_file(BASE_DIR / "index.html")
-
-
-@app.route("/health")
-def health():
-    return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    app.run()
