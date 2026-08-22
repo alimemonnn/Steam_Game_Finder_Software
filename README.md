@@ -1,41 +1,208 @@
+<div align="center">
 
-# 🎮 Steam Game Finder & Evaluator
+# 🎮 Steam Game Finder
 
-An interactive web application built with **Python (Flask)** and **Vanilla JavaScript** that interfaces directly with Steam's public APIs. It allows users to search live Steam titles, view rating analytics in real time, build custom game shortlists with dynamic budget estimation, and export selected games directly to CSV.
+### A real-time Steam storefront clone built with Python & Flask
 
----
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-2.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-## ✨ Features
+<br>
 
-* 🔍 **Live Steam API Integration:** Performs real-time game searches directly against Steam storefront data.
-* ⚡ **Fast Concurrent Processing:** Utilizes Python's `ThreadPoolExecutor` to perform asynchronous parallel review scoring lookups.
-* 🛒 **Interactive Shortlist:** Add or remove games on the fly with live total budget estimation.
-* 📥 **CSV Export:** Download your custom shortlist with game titles, prices, ratings, and direct store URLs in one click.
-* 📱 **Responsive UI:** Dark-mode Steam storefront UI built with standard CSS grid and flexbox.
+**Search the real Steam catalog. See live prices, ratings, and discounts.
+Build your shortlist. Export to Excel in one click.**
 
----
+<br>
 
-## 🛠️ Tech Stack
+🔗 **[Try the Live Demo →](https://steam-game-finder-software.vercel.app)**
 
-| Component | Technology |
-| :--- | :--- |
-| **Backend Framework** | Python 3, Flask |
-| **Concurrency** | `concurrent.futures` (`ThreadPoolExecutor`) |
-| **Frontend** | HTML5, CSS3, JavaScript (ES6+) |
-| **Deployment Platform** | Vercel Serverless Functions |
+</div>
 
 ---
 
-## 🚀 Getting Started Locally
+## 🤔 What is this?
 
-### Prerequisites
+Ever wanted to quickly search Steam, compare games side by side, and save a list of what you want to buy — without opening Steam itself?
 
-* Python 3.9+ installed on your system.
-* Git installed.
+That's exactly what this does. Type any game name, genre, or keyword (like *"RPG"*, *"Free"*, or *"Cyberpunk"*) and get instant results pulled straight from Steam's live catalog — with real prices, review ratings, and active discounts. Add the ones you like to your shortlist and export the whole thing to a CSV spreadsheet.
 
-### Installation
+It's a full Steam storefront experience, rebuilt from scratch in Python.
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/alimemonnn/Steam_Game_Finder_Software.git](https://github.com/alimemonnn/Steam_Game_Finder_Software.git)
-   cd Steam_Game_Finder_Software
+---
+
+## ✨ What can it do?
+
+🔍 &nbsp;**Search anything** — game titles, genres, keywords, even "free to play"
+
+⭐ &nbsp;**Real ratings** — live review scores pulled directly from Steam (e.g. *"92% positive"*)
+
+💸 &nbsp;**Live prices & deals** — see the current price and any active discount badge
+
+🛒 &nbsp;**Personal shortlist** — add games you're interested in, remove ones you change your mind about
+
+💰 &nbsp;**Running total** — see exactly how much your shortlist would cost
+
+📥 &nbsp;**Export to CSV** — download your shortlist as a spreadsheet you can open in Excel or Google Sheets
+
+🎨 &nbsp;**Steam-style UI** — dark theme, game cards with cover art, feels familiar if you've used Steam
+
+---
+
+## 🖥️ How it looks
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🎮 Steam Clone          [ Search games...  ] [Search]  │
+├──────────────────────────────────────┬──────────────────┤
+│                                      │  🛒 My Shortlist │
+│  ┌──────────┐  ┌──────────┐          │                  │
+│  │ Game Art │  │ Game Art │          │  Cyberpunk 2077  │
+│  │          │  │          │          │  $29.99          │
+│  │ Title    │  │ Title    │          │                  │
+│  │ ⭐ 92%   │  │ ⭐ 88%   │          │  Elden Ring      │
+│  │ $29.99   │  │ Free     │          │  $59.99          │
+│  │ [+ Keep] │  │ [+ Keep] │          │                  │
+│  └──────────┘  └──────────┘          │  Total: $89.98   │
+│                                      │  [📥 Export CSV] │
+└──────────────────────────────────────┴──────────────────┘
+```
+
+---
+
+## 🚀 Run it yourself
+
+You only need Python installed. No database, no API keys, no setup headaches.
+
+**Step 1 — Clone the project**
+```bash
+git clone https://github.com/alimemonnn/Steam_Game_Finder_Software.git
+cd Steam_Game_Finder_Software
+```
+
+**Step 2 — Install the one dependency**
+```bash
+pip install -r requirements.txt
+```
+
+**Step 3 — Start it up**
+```bash
+python app.py
+```
+
+**Step 4 — Open your browser and go to:**
+```
+http://127.0.0.1:5000
+```
+
+That's it. Search for anything.
+
+---
+
+## 🗂️ Project structure
+
+It's intentionally simple — just two files:
+
+```
+📁 Steam_Game_Finder/
+│
+├── 📄 app.py              ← Everything: Flask server, Steam API calls, and the UI
+└── 📄 requirements.txt    ← Just one line: flask
+```
+
+All the HTML, CSS, and JavaScript live inside `app.py` as a template. No build tools, no node_modules, no complexity.
+
+---
+
+## ⚙️ How it works under the hood
+
+```
+User types a search query
+        │
+        ▼
+Flask receives GET /api/search?q=...
+        │
+        ▼
+Calls Steam Store Search API
+(store.steampowered.com/api/storesearch)
+        │
+        ▼
+For each result, fetches review data
+(store.steampowered.com/appreviews/{id})
+        │
+        ▼
+Returns JSON with title, price, discount, rating
+        │
+        ▼
+Browser renders game cards with cover art
+```
+
+No data is stored anywhere. Every search hits Steam's live API fresh.
+
+---
+
+## 🌐 API reference
+
+If you want to use the search endpoint directly:
+
+```
+GET /api/search?q={your query}
+```
+
+**Example:**
+```bash
+curl https://steam-game-finder-software.vercel.app/api/search?q=elden+ring
+```
+
+**Returns:**
+```json
+[
+  {
+    "id": "1245620",
+    "title": "ELDEN RING",
+    "price": "$59.99",
+    "discount": "0%",
+    "rating": "95%",
+    "reviews": "1,024,381"
+  }
+]
+```
+
+---
+
+## 🛠️ Built with
+
+| What | Why |
+|------|-----|
+| **Python** | Backend logic and Steam API integration |
+| **Flask** | Lightweight web framework to serve the app |
+| **Vanilla JS** | Frontend interactivity — no heavy frameworks needed |
+| **Steam Public API** | Live game data, prices, and review scores |
+| **Vercel** | Free serverless deployment, zero config |
+
+---
+
+## ⚠️ A few things to know
+
+- This uses Steam's **unofficial public API** — it's not affiliated with or endorsed by Valve
+- Searches are capped at **12 results** to keep response times fast on serverless
+- Occasionally Steam's API may be slow or rate-limited — just search again if results don't load
+- This is a **portfolio & learning project**, not for commercial use
+
+---
+
+## 👤 Made by
+
+**Muhammad Ali** · Full Stack Developer
+
+[![GitHub](https://img.shields.io/badge/GitHub-alimemonnn-181717?style=flat-square&logo=github)](https://github.com/alimemonnn)
+
+> Built to learn Python web development and practice real-world API integration.
+> If you found this useful or interesting, a ⭐ on the repo would mean a lot!
+
+---
+
+<div align="center">
+  <sub>MIT License · Free to use and modify with credit</sub>
+</div>
