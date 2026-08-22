@@ -1,10 +1,16 @@
 import json
-import re
 import urllib.parse
 import urllib.request
+
 from flask import Flask, jsonify, render_template_string, request
 
+
 app = Flask(__name__)
+
+
+# ============================================================
+# HTML / CSS / JAVASCRIPT
+# ============================================================
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -12,7 +18,9 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Steam Storefront Clone & Evaluator</title>
+
     <style>
         :root {
             --bg-main: #171a21;
@@ -23,6 +31,10 @@ HTML_TEMPLATE = """
             --text-main: #c7d5e0;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Motiva Sans', 'Segoe UI', Arial, sans-serif;
             background-color: var(--bg-main);
@@ -31,7 +43,10 @@ HTML_TEMPLATE = """
             padding: 0;
         }
 
-        /* Steam Navigation Bar Header */
+        /* =========================
+           Header
+        ========================= */
+
         header {
             background: #171a21;
             border-bottom: 2px solid #000;
@@ -39,7 +54,7 @@ HTML_TEMPLATE = """
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
 
         .brand {
@@ -50,9 +65,12 @@ HTML_TEMPLATE = """
             font-weight: bold;
             color: #fff;
             letter-spacing: 1px;
+            white-space: nowrap;
         }
 
-        .brand span { color: var(--accent-blue); }
+        .brand span {
+            color: var(--accent-blue);
+        }
 
         .search-container {
             display: flex;
@@ -71,7 +89,9 @@ HTML_TEMPLATE = """
             outline: none;
         }
 
-        .search-container input::placeholder { color: #8f98a0; }
+        .search-container input::placeholder {
+            color: #8f98a0;
+        }
 
         .search-container button {
             background: linear-gradient(to right, #47bfff, #1a9fff);
@@ -83,7 +103,14 @@ HTML_TEMPLATE = """
             border-radius: 3px;
         }
 
-        /* Layout Grid */
+        .search-container button:hover {
+            opacity: 0.9;
+        }
+
+        /* =========================
+           Main Layout
+        ========================= */
+
         .wrapper {
             display: grid;
             grid-template-columns: 1fr 340px;
@@ -93,12 +120,18 @@ HTML_TEMPLATE = """
             padding: 0 20px;
         }
 
-        /* Main Game Grid */
         .game-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(
+                auto-fill,
+                minmax(280px, 1fr)
+            );
             gap: 15px;
         }
+
+        /* =========================
+           Game Cards
+        ========================= */
 
         .game-card {
             background: var(--bg-card);
@@ -107,8 +140,10 @@ HTML_TEMPLATE = """
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: transform 0.2s, background 0.2s;
-            border: 1px solid rgba(255,255,255,0.05);
+            transition:
+                transform 0.2s,
+                background 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .game-card:hover {
@@ -137,7 +172,9 @@ HTML_TEMPLATE = """
             text-decoration: none;
         }
 
-        .game-title:hover { color: var(--accent-blue); }
+        .game-title:hover {
+            color: var(--accent-blue);
+        }
 
         .metrics {
             font-size: 0.85em;
@@ -162,7 +199,10 @@ HTML_TEMPLATE = """
             border-radius: 2px;
         }
 
-        .price { color: #fff; font-weight: bold; }
+        .price {
+            color: #fff;
+            font-weight: bold;
+        }
 
         .btn-add {
             width: 100%;
@@ -176,9 +216,15 @@ HTML_TEMPLATE = """
             border-radius: 3px;
         }
 
-        .btn-add:hover { background: #8bc53f; color: #000; }
+        .btn-add:hover {
+            background: #8bc53f;
+            color: #000;
+        }
 
-        /* Sidebar / Shortlist Panel */
+        /* =========================
+           Sidebar
+        ========================= */
+
         .sidebar {
             background: var(--bg-card);
             border-radius: 4px;
@@ -188,7 +234,11 @@ HTML_TEMPLATE = """
             top: 20px;
         }
 
-        .sidebar h2 { margin-top: 0; color: var(--accent-blue); font-size: 1.3em; }
+        .sidebar h2 {
+            margin-top: 0;
+            color: var(--accent-blue);
+            font-size: 1.3em;
+        }
 
         .shortlist-item {
             display: flex;
@@ -228,7 +278,13 @@ HTML_TEMPLATE = """
             border-radius: 4px;
         }
 
-        .btn-export:hover { background: var(--accent-green); }
+        .btn-export:hover {
+            background: var(--accent-green);
+        }
+
+        /* =========================
+           Loading
+        ========================= */
 
         #loading {
             display: none;
@@ -238,240 +294,837 @@ HTML_TEMPLATE = """
             font-size: 1.2em;
             color: var(--accent-blue);
         }
+
+        /* =========================
+           Responsive Design
+        ========================= */
+
+        @media (max-width: 900px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 20px;
+            }
+
+            .search-container {
+                width: 100%;
+            }
+
+            .wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .search-container {
+                flex-direction: column;
+            }
+
+            .search-container button {
+                width: 100%;
+            }
+
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
+
 <body>
 
+    <!-- =========================
+         Header
+    ========================= -->
+
     <header>
-        <div class="brand">🎮 STEAM <span>CLONE</span></div>
+        <div class="brand">
+            🎮 STEAM <span>CLONE</span>
+        </div>
+
         <div class="search-container">
-            <input type="text" id="query" placeholder="Search Steam full catalog (e.g., Cyberpunk, RPG, Open World, Free)..." onkeypress="handleKeyPress(event)">
-            <button onclick="performSearch()">Search</button>
+            <input
+                type="text"
+                id="query"
+                placeholder="Search Steam catalog..."
+                onkeypress="handleKeyPress(event)"
+            >
+
+            <button onclick="performSearch()">
+                Search
+            </button>
         </div>
     </header>
 
+
+    <!-- =========================
+         Main Content
+    ========================= -->
+
     <div class="wrapper">
+
         <div>
-            <div id="loading">🔍 Fetching live data from Steam...</div>
-            <div class="game-grid" id="game-grid">
-                <!-- Search results injected here -->
+            <div id="loading">
+                🔍 Fetching live data from Steam...
+            </div>
+
+            <div
+                class="game-grid"
+                id="game-grid"
+            >
+                <!-- Search results appear here -->
             </div>
         </div>
+
+
+        <!-- =========================
+             Shortlist Sidebar
+        ========================= -->
 
         <div class="sidebar">
+
             <h2>🛒 My Shortlist</h2>
+
             <div id="shortlist-container">
-                <p style="color: #8f98a0;">No games added yet. Search and click "Keep" to add.</p>
+                <p style="color: #8f98a0;">
+                    No games added yet.
+                    Search and click "Keep" to add.
+                </p>
             </div>
+
             <div class="total-box">
-                Total Estimated: <span id="total-price" style="color: var(--accent-green);">$0.00</span>
+                Total Estimated:
+
+                <span
+                    id="total-price"
+                    style="color: var(--accent-green);"
+                >
+                    $0.00
+                </span>
             </div>
-            <button class="btn-export" onclick="exportCSV()">📥 Export to Excel (CSV)</button>
+
+            <button
+                class="btn-export"
+                onclick="exportCSV()"
+            >
+                📥 Export to Excel (CSV)
+            </button>
+
         </div>
+
     </div>
 
+
+    <!-- =========================
+         JavaScript
+    ========================= -->
+
     <script>
+
         let shortlist = {};
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') performSearch();
+
+        /* =========================
+           Enter Key Search
+        ========================= */
+
+        function handleKeyPress(event) {
+
+            if (event.key === "Enter") {
+                performSearch();
+            }
+
         }
 
-        async function performSearch() {
-            const query = document.getElementById('query').value.trim();
-            if (!query) return;
 
-            const grid = document.getElementById('game-grid');
-            const loading = document.getElementById('loading');
-            grid.innerHTML = '';
-            loading.style.display = 'block';
+        /* =========================
+           Search Steam
+        ========================= */
+
+        async function performSearch() {
+
+            const queryElement =
+                document.getElementById("query");
+
+            const query =
+                queryElement.value.trim();
+
+            if (!query) {
+                return;
+            }
+
+
+            const grid =
+                document.getElementById("game-grid");
+
+            const loading =
+                document.getElementById("loading");
+
+
+            grid.innerHTML = "";
+
+            loading.style.display = "block";
+
 
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                const games = await res.json();
-                loading.style.display = 'none';
 
-                if (games.length === 0) {
-                    grid.innerHTML = '<p>No games found. Try a different query.</p>';
+                const response = await fetch(
+                    `/api/search?q=${encodeURIComponent(query)}`
+                );
+
+
+                if (!response.ok) {
+                    throw new Error(
+                        `HTTP error: ${response.status}`
+                    );
+                }
+
+
+                const games =
+                    await response.json();
+
+
+                loading.style.display = "none";
+
+
+                if (!Array.isArray(games) || games.length === 0) {
+
+                    grid.innerHTML = `
+                        <p>
+                            No games found.
+                            Try a different query.
+                        </p>
+                    `;
+
                     return;
                 }
 
-                games.forEach(g => {
-                    const card = document.createElement('div');
-                    card.className = 'game-card';
+
+                games.forEach(function(game) {
+
+                    const card =
+                        document.createElement("div");
+
+                    card.className = "game-card";
+
+
+                    const safeGame =
+                        JSON.stringify(game)
+                            .replace(/'/g, "&#39;");
+
+
                     card.innerHTML = `
-                        <img src="https://cdn.akamai.steamstatic.com/steam/apps/${g.id}/header.jpg" onerror="this.src='https://via.placeholder.com/280x140?text=Steam+Game'">
+
+                        <img
+                            src="https://cdn.akamai.steamstatic.com/steam/apps/${game.id}/header.jpg"
+                            onerror="this.src='https://via.placeholder.com/280x140?text=Steam+Game'"
+                            alt="${escapeHtml(game.title)}"
+                        >
+
                         <div class="game-details">
-                            <a href="https://store.steampowered.com/app/${g.id}" target="_blank" class="game-title">${g.title}</a>
+
+                            <a
+                                href="https://store.steampowered.com/app/${game.id}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="game-title"
+                            >
+                                ${escapeHtml(game.title)}
+                            </a>
+
                             <div class="metrics">
-                                Rating: <strong style="color: var(--accent-blue);">${g.rating}</strong> (${g.reviews} reviews)
+
+                                Rating:
+                                <strong
+                                    style="color: var(--accent-blue);"
+                                >
+                                    ${escapeHtml(game.rating)}
+                                </strong>
+
+                                (${escapeHtml(game.reviews)}
+                                reviews)
+
                             </div>
+
+
                             <div class="price-bar">
-                                <span class="discount-tag">${g.discount}</span>
-                                <span class="price">${g.price}</span>
+
+                                <span class="discount-tag">
+                                    ${escapeHtml(game.discount)}
+                                </span>
+
+                                <span class="price">
+                                    ${escapeHtml(game.price)}
+                                </span>
+
                             </div>
-                            <button class="btn-add" onclick='addToShortlist(${JSON.stringify(g)})'>+ Keep Game</button>
+
+
+                            <button
+                                class="btn-add"
+                                onclick='addToShortlist(${safeGame})'
+                            >
+                                + Keep Game
+                            </button>
+
                         </div>
                     `;
+
+
                     grid.appendChild(card);
+
                 });
-            } catch (err) {
-                loading.style.display = 'none';
-                alert('Error fetching game data from Steam.');
+
             }
+
+            catch (error) {
+
+                console.error(
+                    "Search error:",
+                    error
+                );
+
+
+                loading.style.display = "none";
+
+
+                grid.innerHTML = `
+                    <p style="color:#ff6b6b;">
+                        Error fetching game data from Steam.
+                        Please try again.
+                    </p>
+                `;
+
+            }
+
         }
+
+
+        /* =========================
+           Basic HTML Escaping
+        ========================= */
+
+        function escapeHtml(value) {
+
+            if (value === null || value === undefined) {
+                return "";
+            }
+
+
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+
+        }
+
+
+        /* =========================
+           Add Game
+        ========================= */
 
         function addToShortlist(game) {
+
             shortlist[game.id] = game;
+
             renderShortlist();
+
         }
+
+
+        /* =========================
+           Remove Game
+        ========================= */
 
         function removeFromShortlist(id) {
+
             delete shortlist[id];
+
             renderShortlist();
+
         }
+
+
+        /* =========================
+           Render Shortlist
+        ========================= */
 
         function renderShortlist() {
-            const container = document.getElementById('shortlist-container');
-            container.innerHTML = '';
+
+            const container =
+                document.getElementById(
+                    "shortlist-container"
+                );
+
+
+            container.innerHTML = "";
+
+
             let total = 0.0;
-            const keys = Object.keys(shortlist);
+
+
+            const keys =
+                Object.keys(shortlist);
+
 
             if (keys.length === 0) {
-                container.innerHTML = '<p style="color: #8f98a0;">No games added yet.</p>';
-                document.getElementById('total-price').innerText = '$0.00';
+
+                container.innerHTML = `
+                    <p style="color: #8f98a0;">
+                        No games added yet.
+                    </p>
+                `;
+
+
+                document.getElementById(
+                    "total-price"
+                ).innerText = "$0.00";
+
+
                 return;
             }
 
-            keys.forEach(id => {
-                const g = shortlist[id];
-                total += g.numericPrice;
 
-                const item = document.createElement('div');
-                item.className = 'shortlist-item';
+            keys.forEach(function(id) {
+
+                const game =
+                    shortlist[id];
+
+
+                total +=
+                    Number(game.numericPrice) || 0;
+
+
+                const item =
+                    document.createElement("div");
+
+
+                item.className =
+                    "shortlist-item";
+
+
                 item.innerHTML = `
+
                     <div>
-                        <div style="color: #fff; font-weight: bold;">${g.title}</div>
-                        <div style="color: var(--accent-green); font-size: 0.85em;">${g.price}</div>
+
+                        <div
+                            style="
+                                color: #fff;
+                                font-weight: bold;
+                            "
+                        >
+                            ${escapeHtml(game.title)}
+                        </div>
+
+                        <div
+                            style="
+                                color: var(--accent-green);
+                                font-size: 0.85em;
+                            "
+                        >
+                            ${escapeHtml(game.price)}
+                        </div>
+
                     </div>
-                    <button class="btn-remove" onclick="removeFromShortlist('${id}')">X</button>
+
+
+                    <button
+                        class="btn-remove"
+                        onclick="removeFromShortlist('${id}')"
+                    >
+                        X
+                    </button>
+
                 `;
+
+
                 container.appendChild(item);
+
             });
 
-            document.getElementById('total-price').innerText = '$' + total.toFixed(2);
+
+            document.getElementById(
+                "total-price"
+            ).innerText =
+                "$" + total.toFixed(2);
+
         }
+
+
+        /* =========================
+           Export CSV
+        ========================= */
 
         function exportCSV() {
-            const keys = Object.keys(shortlist);
+
+            const keys =
+                Object.keys(shortlist);
+
+
             if (keys.length === 0) {
-                alert("Please add at least one game to your shortlist!");
+
+                alert(
+                    "Please add at least one game to your shortlist!"
+                );
+
                 return;
             }
 
-            let csv = "data:text/csv;charset=utf-8,Game Title,Price,Discount,Rating,App ID,URL\\n";
-            keys.forEach(id => {
-                const g = shortlist[id];
-                csv += `"${g.title}","${g.price}","${g.discount}","${g.rating}","${id}","https://store.steampowered.com/app/${id}"\\n`;
+
+            let csv =
+                "Game Title,Price,Discount,Rating,App ID,URL\\n";
+
+
+            keys.forEach(function(id) {
+
+                const game =
+                    shortlist[id];
+
+
+                const title =
+                    String(game.title)
+                        .replace(/"/g, '""');
+
+
+                const price =
+                    String(game.price)
+                        .replace(/"/g, '""');
+
+
+                const discount =
+                    String(game.discount)
+                        .replace(/"/g, '""');
+
+
+                const rating =
+                    String(game.rating)
+                        .replace(/"/g, '""');
+
+
+                csv +=
+                    `"${title}","${price}","${discount}","${rating}","${id}","https://store.steampowered.com/app/${id}"\\n`;
+
             });
 
-            const encodedUri = encodeURI(csv);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "Steam_Storefront_Shortlist.csv");
+
+            const blob =
+                new Blob(
+                    [csv],
+                    {
+                        type: "text/csv;charset=utf-8;"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+            link.download =
+                "Steam_Storefront_Shortlist.csv";
+
+
             document.body.appendChild(link);
+
             link.click();
+
             document.body.removeChild(link);
+
+
+            URL.revokeObjectURL(url);
+
         }
 
-        // Auto search on page load
-        window.onload = () => {
-            document.getElementById('query').value = 'Top Rated';
+
+        /* =========================
+           Automatic Search
+        ========================= */
+
+        window.onload = function() {
+
+            document.getElementById(
+                "query"
+            ).value = "Top Rated";
+
+
             performSearch();
+
         };
+
     </script>
+
 </body>
 </html>
 """
 
-@app.route('/')
+
+# ============================================================
+# HOME PAGE
+# ============================================================
+
+@app.route("/")
 def index():
-    return render_template_string(HTML_TEMPLATE)
 
-@app.route('/api/search')
+    return render_template_string(
+        HTML_TEMPLATE
+    )
+
+
+# ============================================================
+# STEAM SEARCH API
+# ============================================================
+
+@app.route("/api/search")
 def api_search():
-    query = request.args.get('q', 'action')
-    encoded_query = urllib.parse.quote(query)
-    
-    # 1. Search Steam Store API
-    search_url = f"https://store.steampowered.com/api/storesearch/?term={encoded_query}&l=english&cc=US"
-    req = urllib.request.Request(search_url, headers={'User-Agent': 'Mozilla/5.0'})
-    
+
+    query = request.args.get(
+        "q",
+        "action"
+    ).strip()
+
+
+    if not query:
+
+        return jsonify([])
+
+
+    encoded_query =urllib.parse.quote(query)
+
+
+    # Steam Store Search API
+    search_url = (
+        "https://store.steampowered.com/api/storesearch/"
+        f"?term={encoded_query}&l=english&cc=US"
+    )
+
+
+    request_object = urllib.request.Request(
+        search_url,
+        headers={
+            "User-Agent":
+                "Mozilla/5.0"
+        }
+    )
+
+
     games = []
+
+
     try:
-        with urllib.request.urlopen(req) as response:
-            search_data = json.loads(response.read().decode())
-            items = search_data.get('items', [])[:12] # Top 12 results
 
-            for item in items:
-                app_id = str(item['id'])
-                
-                # Fetch review details for each app
-                rev_url = f"https://store.steampowered.com/appreviews/{app_id}?json=1"
-                req_rev = urllib.request.Request(rev_url, headers={'User-Agent': 'Mozilla/5.0'})
-                
-                rating_score = "N/A"
-                total_reviews = 0
-                try:
-                    with urllib.request.urlopen(req_rev) as rev_res:
-                        rev_data = json.loads(rev_res.read().decode())['query_summary']
-                        total_reviews = rev_data.get('total_reviews', 0)
-                        pos = rev_data.get('total_positive', 0)
-                        if total_reviews > 0:
-                            rating_score = f"{round((pos / total_reviews) * 100)}%"
-                except Exception:
-                    pass
+        # ----------------------------------------------------
+        # Get Steam search results
+        # ----------------------------------------------------
 
-                # Price parsing
-                price_data = item.get('price', {})
-                numeric_price = (price_data.get('final', 0) / 100.0) if price_data else 0.0
-                price_str = f"${numeric_price:.2f}" if numeric_price > 0 else ("Free" if item.get('is_free') else "N/A")
-                discount = f"{price_data.get('discount_percent', 0)}%" if price_data else "0%"
+        with urllib.request.urlopen(
+            request_object,
+            timeout=15
+        ) as response:
 
-                games.append({
-                    "id": app_id,
-                    "title": item.get('name', 'Unknown'),
-                    "price": price_str,
-                    "numericPrice": numeric_price,
-                    "discount": discount,
-                    "rating": rating_score,
-                    "reviews": f"{total_reviews:,}"
-                })
-    except Exception as e:
-        print("Search API Error:", e)
+            search_data = json.loads(
+                response.read().decode("utf-8")
+            )
+
+
+        items =search_data.get("items",[])[:12]
+
+
+        # ----------------------------------------------------
+        # Process each game
+        # ----------------------------------------------------
+
+        for item in items:
+
+            app_id =str(item.get("id", ""))
+
+
+            if not app_id:
+                continue
+
+
+            # ------------------------------------------------
+            # Get review information
+            # ------------------------------------------------
+
+            review_url = ("https://store.steampowered.com/appreviews/" f"{app_id}?json=1")
+
+
+            review_request =urllib.request.Request(review_url,headers={"User-Agent":"Mozilla/5.0"})
+
+
+            rating_score = "N/A"
+
+            total_reviews = 0
+
+
+            try:
+
+                with urllib.request.urlopen(
+                    review_request,
+                    timeout=10
+                ) as review_response:
+
+                    review_json =json.loads(review_response.read().decode("utf-8"))
+
+
+                review_summary =review_json.get("query_summary",{})
+
+
+                total_reviews =review_summary.get("total_reviews",0)
+
+
+                positive_reviews =review_summary.get("total_positive",0)
+
+
+                if total_reviews > 0:
+
+                    rating_score = (f"{round((positive_reviews / total_reviews)* 100)}%")
+
+
+            except Exception as review_error:
+
+                print(
+                    "Review API Error:",
+                    review_error
+                )
+
+
+            # ------------------------------------------------
+            # Price information
+            # ------------------------------------------------
+
+            price_data = item.get(
+                    "price",
+                    {}
+                )
+
+
+            if price_data:
+
+                final_price =price_data.get("final",0)
+
+
+                numeric_price =final_price / 100.0
+
+
+                if numeric_price > 0:
+
+                    price_string =f"${numeric_price:.2f}"
+
+                elif item.get("is_free"):
+
+                    price_string = "Free"
+
+                else:
+
+                    price_string = "N/A"
+
+
+                discount_percent = price_data.get("discount_percent",0)
+
+
+                discount =f"{discount_percent}%"
+
+            else:
+
+                numeric_price = 0.0
+
+                price_string = (
+                    "Free"
+                    if item.get("is_free")
+                    else "N/A"
+                )
+
+                discount = "0%"
+
+
+            # ------------------------------------------------
+            # Add game
+            # ------------------------------------------------
+
+            games.append({
+
+                "id":
+                    app_id,
+
+                "title":
+                    item.get(
+                        "name",
+                        "Unknown"
+                    ),
+
+                "price":
+                    price_string,
+
+                "numericPrice":
+                    numeric_price,
+
+                "discount":
+                    discount,
+
+                "rating":
+                    rating_score,
+
+                "reviews":
+                    f"{total_reviews:,}"
+
+            })
+
+
+    except Exception as error:
+
+        print(
+            "Search API Error:",
+            error
+        )
+
 
     return jsonify(games)
 
-if __name__ == '__main__':
-    print("🚀 Steam Storefront Clone running on http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
-from flask import Flask, send_file
-from pathlib import Path
 
-app = Flask(__name__)
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-@app.route("/")
-def home():
-    return send_file(BASE_DIR / "index.html")
-
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}
 
+    return jsonify({
+        "status": "ok"
+    })
+
+
+# ============================================================
+# LOCAL DEVELOPMENT
+# ============================================================
+#
+# Vercel does NOT use this section when deploying the Flask app.
+# It is only for running the project locally with:
+#
+#     python api/index.py
+#
+# ============================================================
 
 if __name__ == "__main__":
-    app.run()
+
+    print(
+        "🚀 Steam Storefront Clone running on "
+        "http://127.0.0.1:5000"
+    )
+
+    app.run(
+        debug=True,
+        port=5000
+    )
