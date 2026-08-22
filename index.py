@@ -443,5 +443,8 @@ def api_search():
 
     return jsonify(games)
 
-# Vercel's Python runtime looks for a WSGI-callable named `app`
-# (no app.run() needed / used in production on Vercel)
+if __name__ == '__main__':
+    # This only runs when you execute `python index.py` locally.
+    # Vercel imports this file as a module instead, so app.run() never
+    # fires in production — it just uses the `app` object directly.
+    app.run(debug=True, port=5000)
